@@ -1,0 +1,70 @@
+#define BLYNK_TEMPLATE_ID "TMPL7gCDeRDE"
+#define BLYNK_DEVICE_NAME "Battery Cooling "
+#define BLYNK_AUTH_TOKEN "MRgJj1xz6jPQjkwWn9AaWGaQ300Een0s"
+#define BLYNK_PRINT Serial
+#include <ctime>
+#include <BlynkSimpleEsp8266.h>
+#include <ESP8266WiFi.h>
+#include <DHT.h>
+
+DHT dht(D5, DHT11);
+
+WiFiClient client;
+
+long myChannelNumber = 1982741;
+const char myWriteAPIKey[] = "5DZDMAZ5NMX4AGBQ";
+std::time_t startTime;
+std::time_t currentTime;
+float thresholdTemp = 14.0f;
+
+char auth[] = "MRgJj1xz6jPQjkwWn9AaWGaQ300Een0s"; // the auth code that you got on your gmail
+char ssid[] = "moto g52_4920"; // username or ssid of your WI-FI
+char pass[] = "12345678"; // password of your Wi-Fi
+
+void setup()
+{
+  // Debug console
+  Serial.begin(9600);
+  pinMode(D4,OUTPUT); //extend these to D8 if you are using a 8 pin relay  
+ 
+  digitalWrite(D4,HIGH); // Make it low if you want everything to go off 
+  
+  Blynk.begin(auth, ssid, pass);
+
+  // from other
+  Serial.begin(9600);
+  WiFi.begin(ssid, pass);
+  while(WiFi.status() != WL_CONNECTED)
+  {
+    delay(200);
+    Serial.print(".");
+  }
+  Serial.println();
+  Serial.println("NodeMCU is connected!");
+  Serial.println(WiFi.localIP());
+  dht.begin();
+  // get the start time
+  startTime = std::time(0);
+}
+
+BLYNK_WRITE(V1) {
+    float temp = (float) param.asInt();
+    thresholdTemp = temp;
+}
+  
+void loop()
+{
+  Blynk.run();
+  currentTime = std::time(0);
+  auto elapsedTime = (currentTime - startTime);
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+  Serial.println("Temperature: " + (String) t);
+  Serial.println("Humidity: " + (String) h);
+  Blynk.virtualWrite(V0, t);
+
+  if(t >= thresholdTemp) {  
+    digitalWrite(D4,LOW);
+  }
+  delay(500);
+}
